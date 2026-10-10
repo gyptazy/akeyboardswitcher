@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DeviceListView: View {
     @ObservedObject var manager: BluetoothDeviceManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -53,6 +54,13 @@ struct DeviceListView: View {
                 .font(.caption)
 
             Divider()
+
+            Button("About") {
+                // Menu bar-only apps aren't active, so bring the window to the front explicitly.
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                openWindow(id: "about")
+            }
+            .buttonStyle(.borderless)
 
             Button("Quit") { NSApplication.shared.terminate(nil) }
                 .buttonStyle(.borderless)

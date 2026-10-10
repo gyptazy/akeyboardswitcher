@@ -9,5 +9,10 @@ struct AKeyboardSwitcherApp: App {
             DeviceListView(manager: manager)
         }
         .menuBarExtraStyle(.window)
+
+        Window("About AKeyboardSwitcher", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
     }
 }
