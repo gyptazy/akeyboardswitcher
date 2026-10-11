@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 @preconcurrency import IOBluetooth
 
@@ -18,42 +19,84 @@ struct PeripheralDevice: Identifiable, Equatable {
     let id: String          // Bluetooth address, e.g. "aa-bb-cc-dd-ee-ff"
     let name: String
     let kind: PeripheralKind
+    let isInput: Bool       // keyboard / mouse / trackpad (Bluetooth "peripheral" class)
     let isConnected: Bool
 }
 
 /// Lists paired Bluetooth input devices and connects/disconnects them via IOBluetooth.
 @MainActor
 final class BluetoothDeviceManager: ObservableObject {
-    @Published private(set) var devices: [PeripheralDevice] = []
+    /// All paired devices, regardless of `showAllDevices`.
+    @Published private(set) var allDevices: [PeripheralDevice] = []
     @Published private(set) var busyDeviceIDs: Set<String> = []
     @Published var lastError: String?
 
     /// When false, only keyboards / mice / trackpads (Bluetooth "peripheral" class) are shown.
-    @Published var showAllDevices = false {
-        didSet { refresh() }
+    @Published var showAllDevices = false
+
+    var devices: [PeripheralDevice] {
+        showAllDevices ? allDevices : allDevices.filter(\.isInput)
     }
 
+    // MARK: Device group
+
+    @Published var groupName: String {
+        didSet { defaults.set(groupName, forKey: Keys.groupName) }
+    }
+
+    /// Bluetooth addresses of the devices in the group.
+    @Published private(set) var groupDeviceIDs: Set<String> {
+        didSet { defaults.set(Array(groupDeviceIDs), forKey: Keys.groupDeviceIDs) }
+    }
+
+    /// Enables the global hotkeys ⌘⌥C (connect group) and ⌘⌥R (release group).
+    @Published var hotKeysEnabled: Bool {
+        didSet {
+            defaults.set(hotKeysEnabled, forKey: Keys.hotKeysEnabled)
+            updateHotKeys()
+        }
+    }
+
+    @Published private(set) var hotKeyError: String?
+
+    var groupDevices: [PeripheralDevice] {
+        allDevices.filter { groupDeviceIDs.contains($0.id) }
+    }
+
+    private enum Keys {
+        static let groupName = "groupName"
+        static let groupDeviceIDs = "groupDeviceIDs"
+        static let hotKeysEnabled = "hotKeysEnabled"
+    }
+
+    private let defaults = UserDefaults.standard
+    private let hotKeys = GlobalHotKeys()
     private var connectNotification: IOBluetoothUserNotification?
     private var disconnectNotifications: [String: IOBluetoothUserNotification] = [:]
     private let workQueue = DispatchQueue(label: "akeyboardswitcher.bluetooth")
 
     init() {
+        groupName = defaults.string(forKey: Keys.groupName) ?? "My Devices"
+        groupDeviceIDs = Set(defaults.stringArray(forKey: Keys.groupDeviceIDs) ?? [])
+        hotKeysEnabled = defaults.object(forKey: Keys.hotKeysEnabled) as? Bool ?? true
+
         connectNotification = IOBluetoothDevice.register(
             forConnectNotifications: self,
             selector: #selector(deviceDidConnect(_:device:))
         )
         refresh()
+        updateHotKeys()
     }
 
     func refresh() {
         let paired = (IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice]) ?? []
-        devices = paired
-            .filter { showAllDevices || Self.isInputPeripheral($0) }
+        allDevices = paired
             .map { device in
                 PeripheralDevice(
                     id: device.addressString ?? UUID().uuidString,
                     name: device.nameOrAddress ?? "Unknown device",
                     kind: Self.kind(of: device),
+                    isInput: Self.isInputPeripheral(device),
                     isConnected: device.isConnected()
                 )
             }
@@ -80,7 +123,48 @@ final class BluetoothDeviceManager: ObservableObject {
         devices.filter(\.isConnected).forEach(disconnect)
     }
 
+    func isInGroup(_ device: PeripheralDevice) -> Bool {
+        groupDeviceIDs.contains(device.id)
+    }
+
+    func setDevice(_ device: PeripheralDevice, inGroup: Bool) {
+        if inGroup {
+            groupDeviceIDs.insert(device.id)
+        } else {
+            groupDeviceIDs.remove(device.id)
+        }
+    }
+
+    func connectGroup() {
+        refresh()
+        groupDevices.filter { !$0.isConnected }.forEach(connect)
+    }
+
+    func releaseGroup() {
+        refresh()
+        groupDevices.filter(\.isConnected).forEach(disconnect)
+    }
+
     // MARK: - Private
+
+    private func updateHotKeys() {
+        hotKeys.unregisterAll()
+        hotKeyError = nil
+        guard hotKeysEnabled else { return }
+
+        let modifiers = cmdKey | optionKey
+        let connectOK = hotKeys.register(keyCode: kVK_ANSI_C, modifiers: modifiers) { [weak self] in
+            Task { @MainActor in self?.connectGroup() }
+        }
+        let releaseOK = hotKeys.register(keyCode: kVK_ANSI_R, modifiers: modifiers) { [weak self] in
+            Task { @MainActor in self?.releaseGroup() }
+        }
+
+        let taken = [connectOK ? nil : "⌘⌥C", releaseOK ? nil : "⌘⌥R"].compactMap { $0 }
+        if !taken.isEmpty {
+            hotKeyError = "\(taken.joined(separator: " and ")) already in use by another app."
+        }
+    }
 
     /// openConnection/closeConnection block for several seconds, so run them off the main thread.
     private func perform(on device: PeripheralDevice, _ action: @escaping (IOBluetoothDevice) -> IOReturn) {

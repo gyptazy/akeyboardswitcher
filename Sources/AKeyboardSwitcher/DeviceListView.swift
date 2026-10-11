@@ -42,6 +42,20 @@ struct DeviceListView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if !manager.groupDevices.isEmpty {
+                Divider()
+
+                HStack {
+                    Label(manager.groupName, systemImage: "rectangle.3.group")
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Connect") { manager.connectGroup() }
+                        .help(manager.hotKeysEnabled ? "Connect group (⌘⌥C)" : "Connect group")
+                    Button("Release") { manager.releaseGroup() }
+                        .help(manager.hotKeysEnabled ? "Release group (⌘⌥R)" : "Release group")
+                }
+            }
+
             Divider()
 
             HStack {
@@ -55,12 +69,11 @@ struct DeviceListView: View {
 
             Divider()
 
-            Button("About") {
-                // Menu bar-only apps aren't active, so bring the window to the front explicitly.
-                NSApplication.shared.activate(ignoringOtherApps: true)
-                openWindow(id: "about")
-            }
-            .buttonStyle(.borderless)
+            Button("Options…") { show(window: "options") }
+                .buttonStyle(.borderless)
+
+            Button("About") { show(window: "about") }
+                .buttonStyle(.borderless)
 
             Button("Quit") { NSApplication.shared.terminate(nil) }
                 .buttonStyle(.borderless)
@@ -69,6 +82,12 @@ struct DeviceListView: View {
         .padding(12)
         .frame(width: 320)
         .onAppear { manager.refresh() }
+    }
+
+    private func show(window id: String) {
+        // Menu bar-only apps aren't active, so bring the window to the front explicitly.
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        openWindow(id: id)
     }
 }
 
