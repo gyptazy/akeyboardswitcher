@@ -18,7 +18,7 @@ simply need to click :)
 ## Screenshot
 
 <p align="center">
-  <img src="https://cdn.gyptazy.com/img/akeyboardswitcher-screenshot.jpg" alt="AKeyboardSwitcher screenshot" width="256">
+  <img src="https://cdn.gyptazy.com/img/akeyboardswitcher-screenshot.jpg" alt="AKeyboardSwitcher screenshot" width="500">
 </p>
 
 ## Build
