@@ -15,6 +15,12 @@ and my personal Mac. Until now, the easiest way to switch the active device was 
 the Mac that should take over the keyboard and mouse. With AKeyboardSwitcher this gets much easier: you
 simply need to click :)
 
+## Screenshot
+
+<p align="center">
+  <img src="https://cdn.gyptazy.com/img/akeyboardswitcher-screenshot.jpg" alt="AKeyboardSwitcher screenshot" width="256">
+</p>
+
 ## Build
 
 Requires macOS 13+ and the Swift toolchain (Command Line Tools are enough).
