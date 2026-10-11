@@ -1,6 +1,17 @@
 # AKeyboardSwitcher
 
+<p align="center">
+  <img src="https://cdn.gyptazy.com/img/akeyboardswitcher.jpg" alt="AKeyboardSwitcher logo" width="256">
+</p>
+
 A macOS menu bar app for quickly moving paired Apple Magic Keyboard, Mouse and Trackpad between Macs.
+
+## Motivation
+
+Working from my home office, I share a single Apple Magic Keyboard and Magic Mouse between my corporate Mac
+and my personal Mac. Until now, the easiest way to switch the active device was to plug in the cable on
+the Mac that should take over the keyboard and mouse. With AKeyboardSwitcher this gets much easier: you
+simply need to click :)
 
 ## Build
 
