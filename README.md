@@ -1,5 +1,7 @@
 # AKeyboardSwitcher
 
+[![Build](https://github.com/gyptazy/akeyboardswitcher/actions/workflows/build.yml/badge.svg)](https://github.com/gyptazy/akeyboardswitcher/actions/workflows/build.yml)
+
 <p align="center">
   <img src="https://cdn.gyptazy.com/img/akeyboardswitcher.jpg" alt="AKeyboardSwitcher logo" width="256">
 </p>
